@@ -1,5 +1,6 @@
 module JXADC(
     input clk,
+    input [7:0] Address_in,
     input vauxp6,
     input vauxn6,
     input vauxp7,
@@ -10,29 +11,16 @@ module JXADC(
     input vauxn14,
     input vp_in,
     input vn_in,
-    output reg [15:0] led,
-    output [3:0] an,
-    output dp,
-    output [6:0] seg,
-    output reg wall_L,
-    output reg wall_R
+    output wire [15:0] data,
 );
-
-    localparam [15:0] threshold = 16'h7FFF;
-    localparam [7:0] Address_in_L = 8'h16; // Channel 6
-    //localparam [7:0] Address_in_R = 8'h17; // Channel 14
-    // localparam [7:0] Address_in <= 8'h1e; // Channel 7
-    // localparam [7:0] Address_in <= 8'h1f; // Channel 15
     
 // XADC Instanciations
     
     wire enable;  
     wire ready;
     
-    // Left Sensor
-    wire [15:0] data_L;   
-    xadc_wiz_0  data_wall_L (
-        .daddr_in(Address_in_L), //addresses can be found in the artix 7 XADC user guide DRP register space
+    xadc_wiz_0  wiz (
+        .daddr_in(Address_in), //addresses can be found in the artix 7 XADC user guide DRP register space
         .dclk_in(clk), 
         .den_in(enable), 
         .di_in(0), 
@@ -49,72 +37,10 @@ module JXADC(
         .vn_in(vn_in), 
         .vp_in(vp_in), 
         .alarm_out(), 
-        .do_out(data_L), 
+        .do_out(data), 
         //.reset_in(),
         .eoc_out(enable),
         .channel_out(),
-        .drdy_out(ready)        );
-        
-    // Right Sensor
-//    wire [15:0] data_R;   
-//    xadc_wiz_0  data_wall_R (
-//        .daddr_in(Address_in_R), //addresses can be found in the artix 7 XADC user guide DRP register space
-//        .dclk_in(clk), 
-//        .den_in(enable), 
-//        .di_in(0), 
-//        .dwe_in(0), 
-//        .busy_out(),                    
-//        .vauxp6(vauxp6),
-//        .vauxn6(vauxn6),
-//        .vauxp7(vauxp7),
-//        .vauxn7(vauxn7),
-//        .vauxp14(vauxp14),
-//        .vauxn14(vauxn14),
-//        .vauxp15(vauxp15),
-//        .vauxn15(vauxn15),
-//        .vn_in(vn_in), 
-//        .vp_in(vp_in), 
-//        .alarm_out(), 
-//        .do_out(data_R), 
-//        //.reset_in(),
-//        .eoc_out(enable),
-//        .channel_out(),
-//        .drdy_out(ready)        );
-
-// Define When to Stop
-      
-    always@(*) begin
-    if (data_L >= threshold) wall_L = 1;
-    else wall_L = 0;
-    end 
-    
-//    always@(*) begin
-//    if (data_R >= threshold) wall_R = 1;
-//    else wall_R = 0;
-//    end 
-    
-    //    led visual dmm              
-    always @(posedge(clk)) begin            
-        if(ready == 1'b1) begin
-            case (data_L[15:12])
-            1:  led <= 16'b11;
-            2:  led <= 16'b111;
-            3:  led <= 16'b1111;
-            4:  led <= 16'b11111;
-            5:  led <= 16'b111111;
-            6:  led <= 16'b1111111; 
-            7:  led <= 16'b11111111;
-            8:  led <= 16'b111111111;
-            9:  led <= 16'b1111111111;
-            10: led <= 16'b11111111111;
-            11: led <= 16'b111111111111;
-            12: led <= 16'b1111111111111;
-            13: led <= 16'b11111111111111;
-            14: led <= 16'b111111111111111;
-            15: led <= 16'b1111111111111111;                        
-            default: led <= 16'b1; 
-            endcase
-        end
-    end
+        .drdy_out(ready)        );    
     
 endmodule
