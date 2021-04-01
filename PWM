@@ -1,1 +1,30 @@
-// Pulse Width Modulation Code Here
+`timescale 1ns / 1ps
+
+module PWM (
+    input clk,
+    output enable
+    );
+    
+reg [20:0] counter; // 60 Hz, up to 1,666,666.67 
+reg temp_PWM;
+localparam [20:0] width = 21'd1048575; // constant duty cycle of 50%
+
+initial begin
+    counter = 0;
+    temp_PWM = 0;
+end
+
+always @ (posedge clk) begin
+        if (counter >= 1666667)
+           counter <= 0;
+        else
+            counter <= counter + 1;    
+        if (counter < width) //generates pulse
+            temp_PWM <= 1;
+        else
+            temp_PWM <=0;
+end
+
+assign enable = temp_PWM;
+
+endmodule
