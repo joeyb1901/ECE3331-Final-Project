@@ -1,0 +1,52 @@
+module MorseCode(
+        input clk,
+        input Mcode,
+        output command,
+        output LED1
+    );
+    
+localparam [7:0] dot = 8'd150; 
+localparam [9:0] dash = 9'd450; 
+localparam [7:0] length = 8'd50; // rate at which it check the light
+
+reg rst;
+reg [1:0] sig_counter;
+reg LED; 
+wire pe;
+
+initial begin
+    rst = 0;
+    sig_counter = 0;
+end
+
+//Delay_ms time_Mcode(clk, rst, length, interval);
+
+pos_edge_det posedge_Mcode (    .sig(Mcode),
+                                .clk(clk),
+                                .pe(pe)     );
+                                
+always @ (*) begin
+    if (pe) sig_counter = sig_counter + 1;
+    if (sig_counter == 2'd3) LED = 1;
+    else LED = 0;
+end
+
+assign LED1 = LED;
+
+endmodule
+
+// Positive Edge Detection
+
+module pos_edge_det (   input sig,
+                        input clk,
+                        output pe);
+                        
+reg sig_dly;
+
+always @ (posedge clk) begin
+    sig_dly <= sig;
+end
+
+assign pe = sig & ~sig_dly;
+
+endmodule
