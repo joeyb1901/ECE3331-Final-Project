@@ -1,1 +1,111 @@
-// Seven Segment Display Code Here
+module Seven_seg(
+ input clk,
+ input [1:0] color,
+ output a, b, c, d, e, f, g, dp, //the individual LED output for the seven segment along with the digital point
+ output [3:0] an   // the 4 bit enable signal
+ );
+ 
+localparam N = 18;
+localparam rst = 0;
+
+wire [1:0] Delay;
+
+localparam [31:0] scroll_delay = 32'd500; // 500 ms
+
+Delay_ms dash_scroll( .clk(clk), 
+                      .rst(rst),
+                      .length(scroll_delay), 
+                      .delay_ms(Delay));
+
+reg [N-1:0]count; //the 18 bit counter which allows us to multiplex at 1000Hz
+
+always @ (posedge clk)
+   count <= count + 1;
+
+reg [6:0]sseg; //the 7 bit register to hold the data to output
+
+reg [6:0]dig0; 
+reg [6:0]dig1;
+reg [6:0]dig2;
+reg [6:0]dig3;
+
+reg [3:0]an_temp; //register for the 4 bit enable
+
+always @ (*)begin
+    case(color[1:0])
+        0 : begin // no color found
+            case(Delay)
+                2'b00 : begin
+                    dig0 = 7'b0111111; //to display dash -
+                    dig1 = 7'b1111111; 
+                    dig2 = 7'b1111111; 
+                    dig3 = 7'b1111111; 
+                end
+                2'b01 : begin
+                    dig0 = 7'b1111111; 
+                    dig1 = 7'b0111111; //to display dash -
+                    dig2 = 7'b1111111; 
+                    dig3 = 7'b1111111; 
+                end
+                2'b10 : begin
+                    dig0 = 7'b1111111; 
+                    dig1 = 7'b1111111; 
+                    dig2 = 7'b0111111; //to display dash -
+                    dig3 = 7'b1111111; 
+                end
+                2'b11 : begin
+                    dig0 = 7'b1111111; 
+                    dig1 = 7'b1111111; 
+                    dig2 = 7'b1111111; 
+                    dig3 = 7'b0111111; //to display dash -
+                end
+             endcase
+        end 
+        1 : begin // red card found
+            dig0 = 7'b1111111; //display none
+            dig1 = 7'b0101111; //to display r
+            dig2 = 7'b0000110; //to display E
+            dig3 = 7'b0100001; //to display d
+        end 
+        2 : begin // blue card found
+            dig0 = 7'b1111111; //display none
+            dig1 = 7'b1000010; //to display G
+            dig2 = 7'b0101111; //to display r
+            dig3 = 7'b0101011; //to display n
+        end 
+        3 : begin // green card found
+            dig0 = 7'b0000011; //to display b
+            dig1 = 7'b1000111; //to display L
+            dig2 = 7'b1100011; //to display u
+            dig3 = 7'b0000110; //to display E
+        end 
+    endcase
+        
+    case(count[N-1:N-2]) //using only the 2 MSB's of the counter 
+   
+        2'b00 : begin //When the 2 MSB's are 00 enable the fourth display            
+                sseg = dig3;
+                an_temp = 4'b1110;
+            end
+        2'b01: begin //When the 2 MSB's are 01 enable the third display            
+                sseg = dig2;
+                an_temp = 4'b1101;
+            end  
+        2'b10: begin //When the 2 MSB's are 10 enable the second display            
+                sseg = dig1;
+                an_temp = 4'b1011;
+            end
+        2'b11: begin //When the 2 MSB's are 11 enable the first display
+                sseg = dig0;
+                an_temp = 4'b0111;
+            end
+    endcase
+end
+ 
+assign an = an_temp;
+ 
+assign {g, f, e, d, c, b, a} = sseg; //concatenate the outputs to the register, this is just a more neat way of doing this.
+
+assign dp = 1'b1; //since the decimal point is not needed, all 4 of them are turned off
+
+endmodule
