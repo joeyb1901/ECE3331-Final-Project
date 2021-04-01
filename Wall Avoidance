@@ -1,0 +1,64 @@
+module Wall_Avoidance(
+            input clk,
+            input vauxp6,
+            input vauxn6,
+            input vauxp7,
+            input vauxn7,
+            input vauxp15,
+            input vauxn15,
+            input vauxp14,
+            input vauxn14,
+            input vp_in,
+            input vn_in
+            //output reg wall_L,
+            //output reg wall_R 
+            );
+            
+localparam [15:0] threshold = 16'h7FFF;
+
+    wire [15:0] data_L;   
+    wire [15:0] data_R;   
+    
+    localparam [7:0] Address_in_L = 8'h16; // Channel 6
+    localparam [7:0] Address_in_R = 8'h17; // Channel 14
+    // localparam [7:0] Address_in <= 8'h1e; // Channel 7
+    // localparam [7:0] Address_in <= 8'h1f; // Channel 15
+
+JXADC left_wall(        .clk(CLK100MHZ),
+                        .Address_in(Address_in_L),
+                        .vauxp6(vauxp6),
+                        .vauxn6(vauxn6),
+                        .vauxp7(vauxp7),
+                        .vauxn7(vauxn7),
+                        .vauxp15(vauxp15),
+                        .vauxn15(vauxn15),
+                        .vauxp14(vauxp14),
+                        .vauxn14(vauxn14),
+                        .vp_in(),
+                        .vn_in(),
+                        .data(data_L)         );
+                        
+JXADC right_wall(        .clk(CLK100MHZ),
+                        .Address_in(Address_in_R),
+                        .vauxp6(vauxp6),
+                        .vauxn6(vauxn6),
+                        .vauxp7(vauxp7),
+                        .vauxn7(vauxn7),
+                        .vauxp15(vauxp15),
+                        .vauxn15(vauxn15),
+                        .vauxp14(vauxp14),
+                        .vauxn14(vauxn14),
+                        .vp_in(),
+                        .vn_in(),
+                        .data(data_R)         );
+                        
+                        
+always@(*) begin
+    if (data_L >= threshold) wall_L = 1;
+    else wall_L = 0;
+    if (data_R >= threshold) wall_R = 1;
+    else wall_R = 0;
+    
+end 
+                        
+endmodule
