@@ -1,0 +1,75 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: Texas Tech Electrical Engineering Dept.
+// Engineer: Joseph Bresett, James Parker, Joshua Ekpo, Chloe Green
+// 
+// Create Date: 02/26/2021
+// Design Name: 
+// Module Name: ECE3331_Final_Project
+// Project Name: Rover 5 Main Project
+// Target Devices: Digilent BASYS 3 - Artix 7 FPGA
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+module Final_Project( 
+    input CLK100MHZ,
+    input Mcode,
+    input left_wall, // Wall Avoidance
+    input right_wall,
+    input [7:0] sw,
+    output [15:0] led, 
+    output EnA, EnB, // Motor Movement
+    output [3:0]In,    
+    output a,b,c,d,e,f,g,dp, //Seven Segment Display
+    output [3:0]an,
+    output red,
+    output green,
+    output blue
+    );
+ 
+// PWM modules run pwm constantly for both motors //////////////////////////////////////////////////////////////////////////////////
+
+localparam [20:0] widthA = 21'd1048575; // (left motor) constant duty cycle of 63%
+localparam [20:0] widthB = 21'd1000000; // (right motor) constant duty cycle of 60%
+
+PWM pwmA(CLK100MHZ, widthA, EnA);
+PWM pwmB(CLK100MHZ, widthB, EnB);
+            
+// Seven Segment Display shows the card found and when the rover is searching //////////////////////////////////////////////////////////////////////////////////
+
+reg [1:0] color = 3'b00;
+Seven_seg display(CLK100MHZ, color [1:0], a, b, c, d, e, f, g, dp, an[3:0]);
+
+// RGB_LED displays what color is found (white when searching)
+
+RGB_LED rgb(color [1:0], red, green, blue);
+
+//// Wall Avoidance //////////////////////////////////////////////////////////////////////////////////
+
+wire [1:0] move;
+
+Wall_Avoidance turn_protocol(   .clk(CLK100MHZ),
+                                .left_wall(left_wall),
+                                .right_wall(right_wall),
+                                .led(led),
+                                .move(move) );
+
+ // Rover Movement //////////////////////////////////////////////////////////////////////////////////
+ 
+Movement wall_response(    .left_wall(left_wall),
+                            .right_wall(right_wall),
+                            .move(move),
+                            .In(In) );                       
+
+endmodule
+
+
+
