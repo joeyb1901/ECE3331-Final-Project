@@ -19,6 +19,6 @@ always @ (posedge CLK100MHZ)// rapidly rotate between checking for reg, green, a
   s_temp <= s_temp + 1; // 00 => 01 => 10 => 11 => 00 goes through all combinations
 end
 
-assign s[2:3] = s_temp[2:3]; 
+assign s[3:2] = s_temp[3:2]; 
 
 endmodule
