@@ -1,52 +1,65 @@
+`timescale 1ns / 1ps
+
 module MorseCode(
-        input clk,
-        input Mcode,
-        output command,
-        output LED1
+        input clk, 
+        input Msig,
+        output reg [15:0] led,
+        output reg [1:0] command
     );
     
-localparam [7:0] dot = 8'd150; 
-localparam [9:0] dash = 9'd450; 
-localparam [7:0] length = 8'd50; // rate at which it check the light
+localparam [8:0] R = 9'b000101101; 
+localparam [8:0] S = 9'b000010101; 
+localparam [8:0] G = 9'b001101101; 
+localparam [8:0] P = 9'b101101101; 
 
-reg rst;
-reg [1:0] sig_counter;
-reg LED; 
-wire pe;
+reg [8:0] morse_code = 9'b000000000;
+reg reset = 0;
+reg [31:0] scale = 32'd10000000;
+wire new_clk;
 
-initial begin
-    rst = 0;
-    sig_counter = 0;
-end
+clk_div divider( clk, reset, scale, new_clk); 
 
-//Delay_ms time_Mcode(clk, rst, length, interval);
-
-pos_edge_det posedge_Mcode (    .sig(Mcode),
-                                .clk(clk),
-                                .pe(pe)     );
-                                
-always @ (*) begin
-    if (pe) sig_counter = sig_counter + 1;
-    if (sig_counter == 2'd3) LED = 1;
-    else LED = 0;
-end
-
-assign LED1 = LED;
+always @ (posedge new_clk) begin
+    morse_code[0] = Msig;
+    morse_code [8:0] <= morse_code << 1;
+    if (morse_code == (R)) begin
+     command[0] = 1'b1;
+    end
+    else if (morse_code == (S)) begin
+     command[1] = 1'b0;
+    end
+    else if ((morse_code) == (G)) begin
+     command[1] = 1'b1;
+    end
+    else if ((morse_code) == (P)) begin
+     command[0] = 1'b0;
+    end
+    led[1:0] <= command [1:0];
+    led[15:7] <= morse_code [8:0];
+end                                
 
 endmodule
 
-// Positive Edge Detection
+module clk_div(
+	input clk,
+	input reset,
+	input [31:0] scale ,
+	output reg clk_out = 0
+    );
 
-module pos_edge_det (   input sig,
-                        input clk,
-                        output pe);
-                        
-reg sig_dly;
-
-always @ (posedge clk) begin
-    sig_dly <= sig;
-end
-
-assign pe = sig & ~sig_dly;
+	// f = (100 MHz)/(4*scale)
+     // scale = 1000 --> f = 25 kHz
+	reg [31:0] count = 32'b0;
+	always @(posedge clk)
+          if (reset) begin
+               count <= 32'b0;
+               clk_out <= 1'b0;
+          end else if (count == scale - 1) begin
+               count <= 32'b0;
+               clk_out <= ~clk_out;
+          end else begin
+               count <= count + 1;
+               clk_out <= clk_out;
+          end
 
 endmodule
