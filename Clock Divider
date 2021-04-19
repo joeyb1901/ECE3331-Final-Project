@@ -20,7 +20,8 @@ begin
         clk_div <= 1'b0;
         end
     else if (pause) 
-        clk_div <= 32'b0;
+        clk_div <= clk_div;
+        count <= count;
     else if (count == count_to - 1) begin
         count <= 32'b0;     
         clk_div <= clk_div + 1;
