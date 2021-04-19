@@ -1,6 +1,5 @@
 module ClkDivider(
     input clk,
-    input [1:0] command,
     input rst,
     input pause,
     input [31:0] count_to,
