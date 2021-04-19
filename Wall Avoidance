@@ -1,64 +1,120 @@
 module Wall_Avoidance(
             input clk,
-            input vauxp6,
-            input vauxn6,
-            input vauxp7,
-            input vauxn7,
-            input vauxp15,
-            input vauxn15,
-            input vauxp14,
-            input vauxn14,
-            input vp_in,
-            input vn_in
-            //output reg wall_L,
-            //output reg wall_R 
+            input [1:0] command,
+            input left_wall,
+            input right_wall,
+            output reg [20:0] widthA,
+            output reg [20:0] widthB,
+            output reg [1:0] move
             );
-            
-localparam [15:0] threshold = 16'h7FFF;
 
-    wire [15:0] data_L;   
-    wire [15:0] data_R;   
-    
-    localparam [7:0] Address_in_L = 8'h16; // Channel 6
-    localparam [7:0] Address_in_R = 8'h17; // Channel 14
-    // localparam [7:0] Address_in <= 8'h1e; // Channel 7
-    // localparam [7:0] Address_in <= 8'h1f; // Channel 15
+ reg [1:0] wall_state = 0;
+ reg turn_order = 0; // left left right right to move across the field by column
+ reg wall;
+ 
+ reg turn_rst = 1; // used by the clock during turns (0 lets the clock run, 1 doesn't)
+ reg turn_pause = 0; // used by pause command
+ localparam [31:0] turning_time = 32'd160000000; // time is takes for the rover to turn 90 degrees
+ wire turn_delay; // variable is icremented every [turning_time] milliseconds
 
-JXADC left_wall(        .clk(CLK100MHZ),
-                        .Address_in(Address_in_L),
-                        .vauxp6(vauxp6),
-                        .vauxn6(vauxn6),
-                        .vauxp7(vauxp7),
-                        .vauxn7(vauxn7),
-                        .vauxp15(vauxp15),
-                        .vauxn15(vauxn15),
-                        .vauxp14(vauxp14),
-                        .vauxn14(vauxn14),
-                        .vp_in(),
-                        .vn_in(),
-                        .data(data_L)         );
-                        
-JXADC right_wall(        .clk(CLK100MHZ),
-                        .Address_in(Address_in_R),
-                        .vauxp6(vauxp6),
-                        .vauxn6(vauxn6),
-                        .vauxp7(vauxp7),
-                        .vauxn7(vauxn7),
-                        .vauxp15(vauxp15),
-                        .vauxn15(vauxn15),
-                        .vauxp14(vauxp14),
-                        .vauxn14(vauxn14),
-                        .vp_in(),
-                        .vn_in(),
-                        .data(data_R)         );
-                        
-                        
-always@(*) begin
-    if (data_L >= threshold) wall_L = 1;
-    else wall_L = 0;
-    if (data_R >= threshold) wall_R = 1;
-    else wall_R = 0;
-    
-end 
-                        
+ClkDivider turn_timer(  .clk(clk), 
+                        .command(command),
+                        .rst(turn_rst), 
+                        .pause(turn_pause),
+                        .count_to(turning_time), 
+                        .clk_div(turn_delay)); 
+                      
+ reg width_rst = 1; // used by the clock during turns (0 lets the clock run, 1 doesn't)
+ reg width_pause = 0; // used by pause command
+ localparam [31:0] width_time = 32'd50000000; // time is takes for the rover to move one column over
+ wire width_delay; // variable is icremented every [width_time] milliseconds
+
+ClkDivider width_timer( .clk(clk), 
+                        .command(command),
+                        .rst(width_rst), 
+                        .pause(width_pause),
+                        .count_to(width_time), 
+                        .clk_div(width_delay)); 
+
+always @(wall_state) begin
+    case(wall_state) 
+        2'd0 : begin
+            move = 1;
+            turn_rst = 1; // stop turn timer from state 3
+            width_rst = 1;
+            widthA = 21'd1048575; // (left motor) constant duty cycle of 63%
+            widthB = 21'd1000000; // (right motor) constant duty cycle of 60%
+        end
+        2'd1 : begin // wall initially found - turn
+            turn_rst = 0; // start turn timer
+            width_rst = 1;
+            case (turn_order)
+                1'b0 : begin
+                    move = 3;
+                    widthA = 21'd1000000; // (left motor)
+                    widthB = 21'd500000; // (right motor)
+                end
+                1'b1 : begin
+                    move = 2;
+                    widthA = 21'd500000; // (left motor)
+                    widthB = 21'd1000000; // (right motor)
+                end
+            endcase         
+        end
+        2'd2 : begin // move forward set distance [width]
+            turn_rst = 1; // stop turn timer
+            width_rst = 0; // start width timer
+            move = 1;
+            widthA = 21'd1048575; 
+            widthB = 21'd1000000;
+        end
+        2'd3 : begin // second turn
+            width_rst = 1; // stop width timer
+            turn_rst = 0; // start turn timer
+            case (turn_order)
+                1'b0 : begin
+                    move = 3;
+                    widthA = 21'd1000000; // (left motor)
+                    widthB = 21'd500000; // (right motor)
+                end
+                1'b1 : begin
+                    move = 2;
+                    widthA = 21'd500000; // (left motor)
+                    widthB = 21'd1000000; // (right motor)
+                end
+            endcase  
+        end
+    endcase
+end
+
+always @(posedge clk) begin
+        wall = (left_wall & right_wall); // Wall is only HIGH when both sensors detect it
+   if (~command[1]) begin // STOP COMMAND
+        turn_rst = 1;
+        width_rst = 1;
+        turn_pause = 0;
+        width_pause = 0;
+        wall_state = 0;
+   end
+   else if (~command[0]) begin // PAUSE COMMAND
+        turn_pause = 1;
+        width_pause = 1;
+   end
+   else begin // if command is 11
+        turn_pause = 0;
+        width_pause = 0;
+       case(wall_state) 
+            2'd0 : if (wall) wall_state = 2'd1;
+            2'd1 : if (turn_delay) wall_state = 2'd2;
+            2'd2 : if (width_delay) wall_state = 2'd3;
+            2'd3 : begin
+                if (turn_delay) begin
+                    wall_state = 2'd0;
+                    turn_order = turn_order + 1;
+                end    
+            end
+        endcase
+    end
+end
+
 endmodule
