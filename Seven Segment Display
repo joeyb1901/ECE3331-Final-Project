@@ -10,12 +10,17 @@ localparam rst = 0;
 
 wire [1:0] Delay;
 
-localparam [31:0] scroll_delay = 32'd500; // 500 ms
+localparam [31:0] scroll_delay = 32'd50000000; // 500 ms
 
-Delay_ms dash_scroll( .clk(clk), 
-                      .rst(rst),
-                      .length(scroll_delay), 
-                      .delay_ms(Delay));
+//Delay_ms dash_scroll( .clk(clk), 
+//                      .rst(rst),
+//                      .length(scroll_delay), 
+//                      .delay_ms(Delay));
+
+ClkDivider dash_scroll( .clk(clk), 
+               .rst(rst), 
+               .count_to(scroll_delay), 
+               .clk_div(Delay)); 
 
 reg [N-1:0]count; //the 18 bit counter which allows us to multiplex at 1000Hz
 
