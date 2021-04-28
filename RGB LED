@@ -1,0 +1,33 @@
+module RGB_LED(
+    input [1:0] color,
+    output reg red,
+    output reg green,
+    output reg blue
+    );
+    
+    always @(*) begin
+        case(color)
+            2'b00 : begin
+                red = 1;
+                green = 1;
+                blue = 1;
+            end
+            2'b01 : begin
+                red = 1;
+                green = 0;
+                blue = 0;
+            end
+            2'b10 : begin
+                red = 0;
+                green = 1;
+                blue = 0;
+            end
+            2'b11 : begin
+                red = 0;
+                green = 0;
+                blue = 1;
+            end
+        endcase
+    end
+    
+endmodule
