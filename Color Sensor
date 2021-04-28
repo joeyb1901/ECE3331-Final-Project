@@ -1,0 +1,116 @@
+module ColorSensor(
+    input clock, reset,
+    input colorFreq,
+    output reg [1:0] color,
+    output reg s2, //LL=Red, LH=Blue, HL=Clear, HH=Green
+    output reg s3);
+   
+    reg [1:0] filterSwap = 2'b00;  
+    
+    reg enable = 0; //turn on and off frequencyCounter.v module
+    
+    reg [19:0] redFreq = 20'b0; 
+    reg [19:0] blueFreq = 20'b0;
+    reg [19:0] greenFreq = 20'b0;
+    reg allFiltersDone = 0;
+    reg [19:0] freq = 20'b0; //initializing frequency
+    reg done = 0;
+    reg last = 0;
+    
+    reg [19:0] edge_count = 20'b0;
+    reg[31:0] count = 32'b0;
+    
+    localparam max = 'd5000000;
+    
+ always @ (posedge clock)begin
+     	done = 0;
+	last <= colorFreq;
+          if(~enable) begin
+               freq = 0;
+               edge_count = 0;
+               count = 0;
+               done = 0;
+          end
+          else begin
+               if (count < max)
+               begin
+                    count = count + 1;
+                    // If value was 0 and is now 1, positive edge detected. Use
+                    // this instead of always @ posedge var to prevent
+                    // unnecessarily using the clock
+                    if(~last & colorFreq)
+                         edge_count = edge_count + 1;
+               end
+               else begin
+                    freq = 0; // Reset the frequency variable
+                    freq = edge_count * 20; // Multiply the value counted so far by 16 because it's only been 1/16th of a second so far
+                    edge_count = 0; // Reset the edge count
+                    count = 0; // Reset the 1/16th second counter
+                    done = 1; // We're done, so set the flag on
+               end
+          end
+ end
+
+    always @ (posedge clock)begin
+        case(filterSwap)    
+             2'b00: begin//on red filter
+                s2 = 0;
+                s3 = 0;
+                enable = 1;
+                if(done)begin
+                    redFreq = freq;
+                    enable = 0;
+                    filterSwap = 2'b01;
+                end
+               
+                end
+            2'b01: begin//on blue filter
+                    s2 = 0;
+                    s3 = 1;
+                    enable = 1;
+                if(done)begin
+                    blueFreq = freq;
+                    enable = 0;
+                    filterSwap = 2'b10;
+                end
+                end
+              2'b10: begin//on green filter
+                    s2 = 1;
+                    s3 = 1;
+                    enable = 1;
+                if(done)begin
+                    greenFreq = freq;
+                    enable = 0;
+                    
+                    filterSwap = 2'b11;
+                end
+                
+                end
+              2'b11: begin
+                if(redFreq <= 4200 && blueFreq <=4200 && greenFreq <= 4200)begin
+                    s2 = 0;
+                    s3 = 0;
+                    color = 2'b00;
+                    filterSwap = 2'b00;
+                end
+               else if(9000 <= redFreq) begin
+                    color = 2'b01;
+                end
+                else if(7000 <= greenFreq && (blueFreq-1000) <= greenFreq) begin
+                    color = 2'b10;
+                end    
+                else if(redFreq <= blueFreq && greenFreq <= blueFreq) begin
+                    color = 2'b11;
+                end  
+                else begin
+                    s2 = 0;
+                    s3 = 0;
+                    color = 2'b00;
+                    
+                end  
+                filterSwap = 2'b00;
+           end
+        endcase
+     end
+       
+endmodule
