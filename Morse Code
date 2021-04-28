@@ -1,9 +1,7 @@
-`timescale 1ns / 1ps
-
 module MorseCode(
         input clk, 
         input Msig,
-        output reg [15:0] led,
+        output reg [15:5] led,
         output reg [1:0] command
     );
     
@@ -22,19 +20,22 @@ clk_div divider( clk, reset, scale, new_clk);
 always @ (posedge new_clk) begin
     morse_code[0] = Msig;
     morse_code [8:0] <= morse_code << 1;
-    if (morse_code == (R)) begin
+    if ((morse_code == (R)) & (command[1])) begin
      command[0] = 1'b1;
     end
     else if (morse_code == (S)) begin
-     command[1] = 1'b0;
+     command = 2'b01;
     end
-    else if ((morse_code) == (G)) begin
-     command[1] = 1'b1;
+    else if (((morse_code) == (G)) & (~command[1])) begin // from stopped
+     command = 2'b11;
     end
-    else if ((morse_code) == (P)) begin
+    else if (((morse_code) == (G)) & (~command[0])) begin // when paused...
+     command <= command; // ... go does nothing
+    end 
+    else if ((morse_code == (P)) & (command == 2'b11)) begin
      command[0] = 1'b0;
     end
-    led[1:0] <= command [1:0];
+    led[6:5] <= command [1:0];
     led[15:7] <= morse_code [8:0];
 end                                
 
