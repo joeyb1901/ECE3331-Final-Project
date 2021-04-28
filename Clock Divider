@@ -3,28 +3,29 @@ module ClkDivider(
     input rst,
     input pause,
     input [31:0] count_to,
-    output reg [31:0] clk_div // incremented every [count to] counts of the 100 MHZ clk
+    output reg [31:0] clk_div
     );
      
 reg [31:0] count;
 
 initial begin
     count[31:0] = 32'b0;
-    clk_div = 1'b0;
+    clk_div = 32'b0;
 end
 
 always @ (posedge(clk), posedge(rst))
 begin
     if (rst == 1'b1) begin
         count <= 32'b0;
-        clk_div <= 1'b0;
+        clk_div <= 32'b0;
         end
-    else if (pause) 
+    else if (pause) begin
         clk_div <= clk_div;
         count <= count;
+    end
     else if (count == count_to - 1) begin
         count <= 32'b0;     
-        clk_div <= clk_div + 1;
+        clk_div <= /*~clk_div*/ clk_div + 1;
         end          
     else begin
         count <= count + 1;
