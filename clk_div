@@ -1,0 +1,23 @@
+module clk_div(
+	input clk,
+	input reset,
+	input [31:0] scale ,
+	output reg clk_out = 0
+    );
+
+	// f = (100 MHz)/(4*scale)
+     // scale = 1000 --> f = 25 kHz
+	reg [31:0] count = 32'b0;
+	always @(posedge clk)
+          if (reset) begin
+               count <= 32'b0;
+               clk_out <= 1'b0;
+          end else if (count == scale - 1) begin
+               count <= 32'b0;
+               clk_out <= ~clk_out;
+          end else begin
+               count <= count + 1;
+               clk_out <= clk_out;
+          end
+
+endmodule
