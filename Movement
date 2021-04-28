@@ -1,24 +1,36 @@
 module Movement(
-//    input left_wall,
-//    input right_wall,
-    input [1:0] move,
-    output [3:0] In
+    input [1:0] command,
+    input left_wall,
+    input right_wall,
+    input [2:0] move,
+    output reg [3:0] In
     );
 
-reg [3:0] In_temp;
 
 always @(*) begin
-    case(move) 
-        0 : In_temp = 4'b0000; // no movement
-        1 : In_temp = 4'b1001; // forward
-        2 : In_temp = 4'b1010; // right turn
-        3 : In_temp = 4'b0101; // left turn
-    endcase
-end
-
-assign In = In_temp;
-
-//assign In[3] = ~left_wall;
-//assign In[0] = ~right_wall;
+    if(command == 2'b11) begin
+        case(move) 
+            0 : In = 4'b0000; // no movement
+            1 : begin
+                In[0] = left_wall;
+                In[1] = ~left_wall;
+                In[2] = ~right_wall;
+                In[3] = right_wall;
+            end
+            2 : In = 4'b1010; // right turn
+//            2 : In = 4'b1000; // right turn
+            3 : In = 4'b0101; // left turn
+//            3 : In = 4'b0001; // left turn
+            4 : In = 4'b1001;
+            5 : begin
+                In[0] = 0;
+                In[1] = ~left_wall;
+                In[2] = ~right_wall;
+                In[3] = 0;
+            end
+        endcase
+     end
+     else In = 4'b0000;
+end 
 
 endmodule
